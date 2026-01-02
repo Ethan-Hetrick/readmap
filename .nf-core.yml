@@ -9,7 +9,7 @@ template:
   name: readmap
   description: Simple pipeline to map reads to a reference genome and produce mapping
     statistic summaries
-  author: '@Ethan-Hetrick'
+  author: "@Ethan-Hetrick"
   version: 1.0.0dev
   force: true
   outdir: .
