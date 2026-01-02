@@ -1,0 +1,18 @@
+repository_type: pipeline
+
+nf_core_version: 3.5.1
+
+lint: {}
+
+template:
+  org: nf-core
+  name: readmap
+  description: Simple pipeline to map reads to a reference genome and produce mapping
+    statistic summaries
+  author: '@Ethan-Hetrick'
+  version: 1.0.0dev
+  force: true
+  outdir: .
+  skip_features:
+    - gpu
+  is_nfcore: true
