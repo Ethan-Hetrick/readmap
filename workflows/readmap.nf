@@ -10,6 +10,14 @@ include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pi
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_readmap_pipeline'
 
+include { FASTQ_FASTQC_UMITOOLS_FASTP } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
+include { MINIMAP2_ALIGN              } from '../modules/nf-core/minimap2/align/main.nf'
+include { SAMTOOLS_COVERAGE           } from '../modules/nf-core/samtools/coverage/main'
+include { CUSTOMSTATS                 } from '../modules/local/customstats/main'
+include { SAMTOOLS_SORMADUP           } from '../modules/nf-core/samtools/sormadup/main'
+include { BAM_STATS_SAMTOOLS          } from '../subworkflows/nf-core/bam_stats_samtools/main'
+include { SAMTOOLS_INDEX              } from '../modules/nf-core/samtools/index/main'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -24,15 +32,81 @@ workflow READMAP {
 
     ch_versions = channel.empty()
     ch_multiqc_files = channel.empty()
-    //
-    // MODULE: Run FastQC
-    //
-    FASTQC (
-        ch_samplesheet
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_reference = ch_samplesheet.map { meta, it -> [ meta, params.reference ] }
+    ch_fai = ch_samplesheet.map { meta, it -> [ meta, params.fai ] }
+    ch_reads = ch_samplesheet.map { meta, it -> [ meta, it, [] ] }
 
+    //
+    // SUBWORKFLOW: Run FastQC and FastP
+    //
+    FASTQ_FASTQC_UMITOOLS_FASTP (
+        ch_reads,
+        false,
+        false,
+        true,
+        [],
+        false,
+        false,
+        false,
+        1
+    )
+
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.fastqc_raw_zip.collect{it[1]})
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.fastqc_trim_zip.collect{it[1]})
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.trim_json.collect{it[1]})
+    ch_versions = ch_versions.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.versions.first())
+
+    MINIMAP2_ALIGN (
+        FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
+        ch_reference,
+        true,
+        'bai',
+        false,
+        false
+    )
+
+    SAMTOOLS_SORMADUP (
+        MINIMAP2_ALIGN.out.bam,
+        ch_reference
+    )
+
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_SORMADUP.out.metrics.collect{it[1]}.ifEmpty([]))
+
+    ch_sorted_bam = SAMTOOLS_SORMADUP.out.bam
+
+    SAMTOOLS_INDEX (
+        ch_sorted_bam
+    )
+
+    ch_bam_index = SAMTOOLS_INDEX.out.bai
+
+    ch_bam_combined = ch_sorted_bam.join(ch_bam_index)
+
+    BAM_STATS_SAMTOOLS (
+        ch_bam_combined,
+        ch_reference
+    )
+
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_STATS_SAMTOOLS.out.flagstat.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_STATS_SAMTOOLS.out.stats.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_STATS_SAMTOOLS.out.idxstats.collect{it[1]}.ifEmpty([]))
+
+    //
+    // MODULE: Samtools coverage
+    //
+
+    SAMTOOLS_COVERAGE (
+        ch_bam_combined,
+        ch_reference,
+        ch_fai
+    )
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_COVERAGE.out.coverage.collect{it[1]}.ifEmpty([]))
+
+
+    CUSTOMSTATS (
+        BAM_STATS_SAMTOOLS.out.stats,
+        SAMTOOLS_COVERAGE.out.coverage
+    )
     //
     // Collate and save software versions
     //
