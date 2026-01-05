@@ -23,6 +23,13 @@
 
 **nf-core/readmap** is a bioinformatics pipeline that ...
 
+1) QCs reads (FastP, fastQC)
+2) Maps reads to reference genome (Minimap2)
+3) Generates mapping statistics (Samtools)
+4) Calls variants (freebayes)
+5) Reports variant call metrics (BCFtools)
+6) Summarizes metrics (custom script)
+
 <!-- TODO nf-core:
    Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
    major pipeline sections and the types of output it produces. You're giving an overview to someone new
