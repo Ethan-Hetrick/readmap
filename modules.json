@@ -5,11 +5,6 @@
         "https://github.com/nf-core/modules.git": {
             "modules": {
                 "nf-core": {
-                    "fastcov": {
-                        "branch": "master",
-                        "git_sha": "2589c8ae7565af65346d7d8cd027cb98ff66b87f",
-                        "installed_by": ["modules"]
-                    },
                     "fastp": {
                         "branch": "master",
                         "git_sha": "b8f1de0ac853ae5b56c63450d47438f899c553d0",
