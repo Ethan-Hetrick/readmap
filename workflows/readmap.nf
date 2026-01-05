@@ -10,13 +10,15 @@ include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pi
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_readmap_pipeline'
 
-include { FASTQ_FASTQC_UMITOOLS_FASTP } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
-include { MINIMAP2_ALIGN              } from '../modules/nf-core/minimap2/align/main.nf'
-include { SAMTOOLS_COVERAGE           } from '../modules/nf-core/samtools/coverage/main'
-include { CUSTOMSTATS                 } from '../modules/local/customstats/main'
-include { SAMTOOLS_SORMADUP           } from '../modules/nf-core/samtools/sormadup/main'
-include { BAM_STATS_SAMTOOLS          } from '../subworkflows/nf-core/bam_stats_samtools/main'
-include { SAMTOOLS_INDEX              } from '../modules/nf-core/samtools/index/main'
+include { FASTQ_FASTQC_UMITOOLS_FASTP                 } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
+include { BAM_VARIANT_CALLING_SORT_FREEBAYES_BCFTOOLS } from '../subworkflows/nf-core/bam_variant_calling_sort_freebayes_bcftools/main'
+include { MINIMAP2_ALIGN                              } from '../modules/nf-core/minimap2/align/main.nf'
+include { SAMTOOLS_COVERAGE                           } from '../modules/nf-core/samtools/coverage/main'
+include { CUSTOMSTATS                                 } from '../modules/local/customstats/main'
+include { SAMTOOLS_SORMADUP                           } from '../modules/nf-core/samtools/sormadup/main'
+include { BAM_STATS_SAMTOOLS                          } from '../subworkflows/nf-core/bam_stats_samtools/main'
+include { SAMTOOLS_INDEX                              } from '../modules/nf-core/samtools/index/main'
+include { BCFTOOLS_STATS                              } from '../modules/nf-core/bcftools/stats/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -102,11 +104,64 @@ workflow READMAP {
     )
     ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_COVERAGE.out.coverage.collect{it[1]}.ifEmpty([]))
 
+    if (params.run_variant_calling) {
 
-    CUSTOMSTATS (
-        BAM_STATS_SAMTOOLS.out.stats,
-        SAMTOOLS_COVERAGE.out.coverage
-    )
+        //
+        // SUBWORKFLOW: Run variant calling with FreeBayes and BCFtools
+        //
+
+        ch_input = ch_bam_combined.map { meta, bam, index -> [ meta, bam, index, [], [], [] ] }
+        ch_fasta_fai = ch_reference.join(ch_fai)
+
+        BAM_VARIANT_CALLING_SORT_FREEBAYES_BCFTOOLS (
+            ch_input,       // channel: [mandatory] [ val(meta), path(input1), path(index1), path(input2), path(index2), path(bed) ]
+            ch_fasta_fai,   // channel: [mandatory] [ val(meta2), path(fasta), path(fai) ]
+            [ [], [] ],     // channel: [optional]  [ val(meta3), path(samples) ]
+            [ [], [] ],     // channel: [optional]  [ val(meta4), path(populations) ]
+            [ [], [] ]      // channel: [optional]  [ val(meta5), path(cnv) ]
+        )
+
+        ch_vcf = BAM_VARIANT_CALLING_SORT_FREEBAYES_BCFTOOLS.out.vcf
+        ch_tbi = BAM_VARIANT_CALLING_SORT_FREEBAYES_BCFTOOLS.out.tbi
+
+        //
+        // MODULE: BCFtools stats
+        //
+
+        ch_bcftools_input = ch_vcf.join(ch_tbi)
+
+        BCFTOOLS_STATS (
+            ch_bcftools_input,
+            [ [], [] ],
+            [ [], [] ],
+            [ [], [] ],
+            [ [], [] ],
+            [ [], [] ]
+        )
+
+        ch_multiqc_files = ch_multiqc_files.mix(BCFTOOLS_STATS.out.stats.collect{it[1]}.ifEmpty([]))
+
+        //
+        // MODULE: Custom stats
+        //
+
+        ch_bcf_stats = BCFTOOLS_STATS.out.stats.ifEmpty([ [], [] ])
+
+        CUSTOMSTATS (
+            BAM_STATS_SAMTOOLS.out.stats,
+            SAMTOOLS_COVERAGE.out.coverage,
+            ch_bcf_stats
+        )
+
+    } else {
+
+        CUSTOMSTATS (
+            BAM_STATS_SAMTOOLS.out.stats,
+            SAMTOOLS_COVERAGE.out.coverage,
+            [ [], [] ]
+        )
+    }
+
     //
     // Collate and save software versions
     //

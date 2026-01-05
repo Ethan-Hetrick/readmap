@@ -9,6 +9,7 @@ process CUSTOMSTATS {
 
     tuple val(meta), path(stats)
     tuple val(meta2), path(coverage)
+    tuple val(meta3), path(bcftools_stats)
 
     output:
     tuple val(meta), path("*_customstats.txt"), emit: customstats
@@ -21,7 +22,7 @@ process CUSTOMSTATS {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    sam_stats.py $stats $coverage > ${prefix}_customstats.txt
+    sam_stats.py $stats $coverage $bcftools_stats > ${prefix}_customstats.txt
     """
 
     stub:
