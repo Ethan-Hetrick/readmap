@@ -74,11 +74,6 @@
             },
             "subworkflows": {
                 "nf-core": {
-                    "bam_markduplicates_picard": {
-                        "branch": "master",
-                        "git_sha": "0b2435805036a16dcdcf21533632d956b8273ac4",
-                        "installed_by": ["subworkflows"]
-                    },
                     "bam_stats_samtools": {
                         "branch": "master",
                         "git_sha": "0b2435805036a16dcdcf21533632d956b8273ac4",
