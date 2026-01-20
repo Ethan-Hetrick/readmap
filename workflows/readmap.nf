@@ -20,6 +20,8 @@ include { BAM_STATS_SAMTOOLS                          } from '../subworkflows/nf
 include { SAMTOOLS_INDEX                              } from '../modules/nf-core/samtools/index/main'
 include { BCFTOOLS_STATS                              } from '../modules/nf-core/bcftools/stats/main'
 
+include { KRAKEN2_KRAKEN2                             } from '../modules/nf-core/kraken2/kraken2/main'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -57,6 +59,17 @@ workflow READMAP {
     ch_multiqc_files = ch_multiqc_files.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.fastqc_trim_zip.collect{it[1]})
     ch_multiqc_files = ch_multiqc_files.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.trim_json.collect{it[1]})
     ch_versions = ch_versions.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.versions.first())
+
+    //
+    // MODULE: Kraken2
+    //
+
+    KRAKEN2_KRAKEN2 (
+        FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
+        params.kraken2_db,
+        false,
+        true
+    )
 
     MINIMAP2_ALIGN (
         FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
