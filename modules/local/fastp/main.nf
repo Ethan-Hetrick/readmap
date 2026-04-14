@@ -78,8 +78,11 @@ process FASTP {
     } else {
         def merge_fastq = save_merged ? "-m --merged_out ${prefix}.merged.fastq.gz" : ''
         """
-        [ ! -f  ${prefix}_R1.fastq.gz ] && ln -sf ${reads[0]} ${prefix}_R1.fastq.gz
-        [ ! -f  ${prefix}_R2.fastq.gz ] && ln -sf ${reads[1]} ${prefix}_R2.fastq.gz
+        # Gzip input reads if not already gzipped
+        cat ${reads[0]} | gzip -c > ${prefix}_R1.fastq.gz &
+        cat ${reads[1]} | gzip -c > ${prefix}_R2.fastq.gz &
+        wait
+
         fastp \\
             --in1 ${prefix}_R1.fastq.gz \\
             --in2 ${prefix}_R2.fastq.gz \\
