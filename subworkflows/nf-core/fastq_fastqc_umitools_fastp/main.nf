@@ -136,7 +136,7 @@ workflow FASTQ_FASTQC_UMITOOLS_FASTP {
 
         if (!skip_fastqc) {
             FASTQC_TRIM(
-                trim_reads
+                FASTP.out.reads
             )
             fastqc_trim_html = FASTQC_TRIM.out.html
             fastqc_trim_zip = FASTQC_TRIM.out.zip
@@ -144,7 +144,7 @@ workflow FASTQ_FASTQC_UMITOOLS_FASTP {
     }
 
     emit:
-    reads             = trim_reads // channel: [ val(meta), [ reads ] ]
+    reads             = FASTP.out.reads // channel: [ val(meta), [ reads ] ]
     fastqc_raw_html   // channel: [ val(meta), [ html ] ]
     fastqc_raw_zip    // channel: [ val(meta), [ zip ] ]
     umi_log           // channel: [ val(meta), [ log ] ]

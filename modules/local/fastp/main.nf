@@ -14,7 +14,7 @@ process FASTP {
     val   save_merged
 
     output:
-    tuple val(meta), path('*.fastp.fastq.gz') , optional:true, emit: reads
+    tuple val(meta), path('*.fastp.fastq.gz') , optional:false, emit: reads
     tuple val(meta), path('*.json')           , emit: json
     tuple val(meta), path('*.html')           , emit: html
     tuple val(meta), path('*.log')            , emit: log
@@ -79,8 +79,8 @@ process FASTP {
         def merge_fastq = save_merged ? "-m --merged_out ${prefix}.merged.fastq.gz" : ''
         """
         # Gzip input reads if not already gzipped
-        cat ${reads[0]} | gzip -c > ${prefix}_R1.fastq.gz &
-        cat ${reads[1]} | gzip -c > ${prefix}_R2.fastq.gz &
+        [[ "${reads[0]}" == *.gz ]] && ln -sf ${reads[0]} ${prefix}_R1.fastq.gz || gzip -c ${reads[0]} > ${prefix}_R1.fastq.gz &
+        [[ "${reads[1]}" == *.gz ]] && ln -sf ${reads[1]} ${prefix}_R2.fastq.gz || gzip -c ${reads[1]} > ${prefix}_R2.fastq.gz &
         wait
 
         fastp \\
