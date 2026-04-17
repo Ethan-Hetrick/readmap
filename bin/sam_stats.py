@@ -59,7 +59,7 @@ def parse_bcftools_stats(lines):
 
         elif l.startswith("DP"):
             parts = l.rstrip().split("\t")
-            depth = int(parts[2])
+            depth = int(parts[2].lstrip(">"))
             n_sites = int(parts[5])
             dp_sum += depth * n_sites
             dp_sites += n_sites

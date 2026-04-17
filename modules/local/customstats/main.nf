@@ -3,7 +3,7 @@ process CUSTOMSTATS {
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
-    container 'docker://staphb/pandas:2.3.3'
+    container 'https://depot.galaxyproject.org/singularity/pandas:2.2.1'
 
     input:
 
