@@ -15,6 +15,7 @@ include { BAM_VARIANT_CALLING_SORT_FREEBAYES_BCFTOOLS } from '../subworkflows/nf
 include { MINIMAP2_ALIGN                              } from '../modules/nf-core/minimap2/align/main.nf'
 include { SAMTOOLS_COVERAGE                           } from '../modules/nf-core/samtools/coverage/main'
 include { CUSTOMSTATS                                 } from '../modules/local/customstats/main'
+include { STACKS_REFMAP                               } from '../modules/local/gstacks/main'
 include { SAMTOOLS_SORMADUP                           } from '../modules/nf-core/samtools/sormadup/main'
 include { BAM_STATS_SAMTOOLS                          } from '../subworkflows/nf-core/bam_stats_samtools/main'
 include { SAMTOOLS_INDEX                              } from '../modules/nf-core/samtools/index/main'
@@ -64,12 +65,12 @@ workflow READMAP {
     // MODULE: Kraken2
     //
 
-    KRAKEN2_KRAKEN2 (
-        FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
-        params.kraken2_db,
-        false,
-        true
-    )
+    // KRAKEN2_KRAKEN2 (
+    //     FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
+    //     params.kraken2_db,
+    //     false,
+    //     true
+    // )
 
     MINIMAP2_ALIGN (
         FASTQ_FASTQC_UMITOOLS_FASTP.out.reads,
@@ -174,6 +175,26 @@ workflow READMAP {
             [ [], [] ]
         )
     }
+
+    ch_stacks_bams = ch_sorted_bam
+        .map { meta, bam -> bam }
+        .collect()
+        .map { bam_files -> [ [ id: 'stacks_refmap' ], bam_files ] }
+
+    ch_popmap = params.popmap ?
+        channel.fromPath(params.popmap, checkIfExists: true) :
+        ch_samplesheet
+            .map { meta, reads -> "${meta.id}\tall_samples" }
+            .collectFile(
+                storeDir: "${params.outdir}/stacks",
+                name: 'stacks_auto_popmap.tsv',
+                newLine: true
+            )
+
+    STACKS_REFMAP (
+        ch_stacks_bams,
+        ch_popmap
+    )
 
     //
     // Collate and save software versions

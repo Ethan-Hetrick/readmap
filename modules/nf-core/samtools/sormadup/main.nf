@@ -28,10 +28,14 @@ process SAMTOOLS_SORMADUP {
     def args3 = task.ext.args3 ?: ''
     def args4 = task.ext.args4 ?: ''
     def args5 = task.ext.args5 ?: ''
+    def args6 = task.ext.args6 ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def extension = args5.contains("--output-fmt sam") ? "sam" :
                     args5.contains("--output-fmt cram") ? "cram" :
                     "bam"
+    def view_format = extension == "cram" ? "-C -T ${fasta}" :
+                      extension == "sam"  ? "-h" :
+                                            "-b"
     def reference = fasta ? "--reference ${fasta}" : ""
     // memory per thread for samtools sort
     // set to 50% of the memory per thread, but at least 768M (samtools default)
@@ -73,8 +77,14 @@ process SAMTOOLS_SORMADUP {
         --threads $task.cpus \\
         $reference \\
         $args5 \\
-        - \\
-        ${prefix}.processed.${extension}
+        - - \\
+    | \\
+    samtools view \\
+        --threads $task.cpus \\
+        $view_format \\
+        $args6 \\
+        -o ${prefix}.processed.${extension} \\
+        -
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -90,7 +100,7 @@ process SAMTOOLS_SORMADUP {
                     "bam"
 
     """
-    touch ${prefix}.${extension}
+    touch ${prefix}.processed.${extension}
     touch ${prefix}.metrics
 
     cat <<-END_VERSIONS > versions.yml

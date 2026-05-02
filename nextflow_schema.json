@@ -269,6 +269,28 @@
         },
         "run_variant_calling": {
             "type": "boolean"
+        },
+        "popmap": {
+            "type": "string",
+            "format": "file-path",
+            "exists": true,
+            "description": "Optional path to the Stacks population map file. If omitted, the pipeline will auto-generate a single-population map from the samplesheet."
+        },
+        "stacks_populations_p": {
+            "type": "integer",
+            "description": "Minimum number of populations a locus must be present in."
+        },
+        "stacks_populations_r": {
+            "type": "number",
+            "description": "Minimum proportion of individuals in a population required to process a locus."
+        },
+        "stacks_populations_min_mac": {
+            "type": "integer",
+            "description": "Minimum minor allele count filter for Stacks populations."
+        },
+        "stacks_populations_max_obs_het": {
+            "type": "number",
+            "description": "Maximum observed heterozygosity filter for Stacks populations."
         }
     }
 }
